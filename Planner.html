@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Study Planner</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+display:flex;
+justify-content:center;
+}
+
+.container{
+background:white;
+padding:20px;
+width:380px;
+margin-top:20px;
+border-radius:10px;
+box-shadow:0 0 10px gray;
+}
+
+h2{
+text-align:center;
+}
+
+input,textarea,button{
+width:100%;
+padding:10px;
+margin:5px 0;
+}
+
+button{
+background:#4CAF50;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+ul{
+padding:0;
+}
+
+li{
+list-style:none;
+background:#eee;
+margin:5px 0;
+padding:10px;
+border-radius:5px;
+display:flex;
+justify-content:space-between;
+}
+
+.completed{
+text-decoration:line-through;
+color:gray;
+}
+
+.dark{
+background:#121212;
+color:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container" id="app">
+
+<h2>📅 Smart Study Planner</h2>
+
+<!-- TASK PLANNER -->
+
+<h3>📌 Tasks</h3>
+
+<input type="text" id="taskInput" placeholder="Enter task">
+
+<input type="date" id="dateInput">
+
+<button onclick="addTask()">Add Task</button>
+
+<ul id="taskList"></ul>
+
+<hr>
+
+<!-- ROUTINE MEMORY -->
+
+<h3>🧠 Daily Routine Memory</h3>
+
+<input type="text" id="routineInput" placeholder="What routine did you follow today?">
+
+<button onclick="saveRoutine()">Save Routine</button>
+
+<ul id="routineList"></ul>
+
+<hr>
+
+<!-- MISTAKE REFLECTION -->
+
+<h3>⚠ Today's Mistakes</h3>
+
+<textarea id="mistakeInput" placeholder="Write today's mistakes"></textarea>
+
+<button onclick="saveMistake()">Save Reflection</button>
+
+<p id="savedMistake"></p>
+
+<hr>
+
+<!-- POMODORO TIMER -->
+
+<h3>⏱ Study Timer (25 min)</h3>
+
+<button onclick="startTimer()">Start Timer</button>
+
+<p id="timer">25:00</p>
+
+<hr>
+
+<!-- PRODUCTIVITY -->
+
+<h3>📊 Productivity Score</h3>
+
+<p id="score">0 Tasks Completed</p>
+
+<hr>
+
+<!-- DICTIONARY -->
+
+<h3>📖 Study Dictionary</h3>
+
+<input type="text" id="wordInput" placeholder="Enter word">
+
+<button onclick="searchWord()">Search Meaning</button>
+
+<p id="wordResult"></p>
+
+<hr>
+
+<!-- SETTINGS -->
+
+<h3>⚙ Settings</h3>
+
+<button onclick="toggleDark()">Dark Mode</button>
+
+<button onclick="clearData()">Clear All Data</button>
+
+</div>
+
+<script>
+
+/* TASK SYSTEM */
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function renderTasks(){
+
+let list=document.getElementById("taskList");
+list.innerHTML="";
+
+let completed=0;
+
+tasks.forEach((task,index)=>{
+
+let li=document.createElement("li");
+
+if(task.completed){
+li.classList.add("completed");
+completed++;
+}
+
+li.innerHTML=`
+${task.name} (${task.date})
+<div>
+<button onclick="toggleTask(${index})">✔</button>
+<button onclick="deleteTask(${index})">❌</button>
+</div>
+`;
+
+list.appendChild(li);
+
+});
+
+document.getElementById("score").innerText =
+completed + " Tasks Completed";
+
+localStorage.setItem("tasks",JSON.stringify(tasks));
+
+}
+
+function addTask(){
+
+let name=document.getElementById("taskInput").value;
+let date=document.getElementById("dateInput").value;
+
+if(name==="") return;
+
+tasks.push({
+name:name,
+date:date,
+completed:false
+});
+
+document.getElementById("taskInput").value="";
+document.getElementById("dateInput").value="";
+
+renderTasks();
+
+}
+
+function toggleTask(i){
+
+tasks[i].completed=!tasks[i].completed;
+renderTasks();
+
+}
+
+function deleteTask(i){
+
+tasks.splice(i,1);
+renderTasks();
+
+}
+
+/* ROUTINE MEMORY */
+
+let routines =
+JSON.parse(localStorage.getItem("routines")) || [];
+
+function saveRoutine(){
+
+let text=document.getElementById("routineInput").value;
+
+if(text==="") return;
+
+let today=new Date().toLocaleDateString();
+
+routines.push({
+date:today,
+text:text
+});
+
+document.getElementById("routineInput").value="";
+
+renderRoutine();
+
+}
+
+function renderRoutine(){
+
+let list=document.getElementById("routineList");
+list.innerHTML="";
+
+routines.forEach(r=>{
+
+let li=document.createElement("li");
+
+li.innerText=r.date+" : "+r.text;
+
+list.appendChild(li);
+
+});
+
+localStorage.setItem("routines",
+JSON.stringify(routines));
+
+}
+
+/* MISTAKE MEMORY */
+
+function saveMistake(){
+
+let mistake=document.getElementById("mistakeInput").value;
+
+localStorage.setItem("mistake",mistake);
+
+document.getElementById("savedMistake").innerText=
+"Saved: "+mistake;
+
+}
+
+let saved=localStorage.getItem("mistake");
+
+if(saved){
+document.getElementById("savedMistake").innerText=
+"Saved: "+saved;
+}
+
+/* TIMER */
+
+let time=1500;
+
+function startTimer(){
+
+let timer=setInterval(function(){
+
+let minutes=Math.floor(time/60);
+let seconds=time%60;
+
+document.getElementById("timer").innerText=
+minutes+":"+(seconds<10?"0":"")+seconds;
+
+time--;
+
+if(time<0){
+clearInterval(timer);
+alert("Study Session Complete!");
+}
+
+},1000);
+
+}
+
+/* DICTIONARY */
+
+function searchWord(){
+
+let word=document.getElementById("wordInput").value;
+
+if(word===""){
+document.getElementById("wordResult").innerText=
+"Enter a word";
+return;
+}
+
+fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+word)
+
+.then(response=>response.json())
+
+.then(data=>{
+
+let meaning=
+data[0].meanings[0].definitions[0].definition;
+
+document.getElementById("wordResult").innerText=
+"Meaning: "+meaning;
+
+})
+
+.catch(()=>{
+
+document.getElementById("wordResult").innerText=
+"Word not found";
+
+});
+
+}
+
+/* SETTINGS */
+
+function toggleDark(){
+
+document.getElementById("app")
+.classList.toggle("dark");
+
+}
+
+function clearData(){
+
+localStorage.clear();
+location.reload();
+
+}
+
+renderTasks();
+renderRoutine();
+
+</script>
+
+</body>
+</html>
